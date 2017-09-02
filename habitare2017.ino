@@ -14,10 +14,9 @@ const uint16_t monoMode = 1;  // Mono setting 0=off, 3=max
 // Pins
 const int ledPin = 5;
 
-// How many pirPins need to be HIGH to signal movement
-const int pirPins[] = {A1, A2, A3};
-const int PIR_SENSOR_COUNT = 3;
-const int MOVEMENT_THRESHOLD = 1;
+const int pirPins[] = {A0, A1, A2, A3};
+const int PIR_SENSOR_COUNT = 4;
+const int MOVEMENT_THRESHOLD = 1; // How many pirPins need to be HIGH to signal movement
 
 // States
 const int STATE_OFF = 0;
@@ -29,6 +28,8 @@ const unsigned long STARTING_TIMEOUT = 10 * 1000LU; // Duration of STARTING stat
 const unsigned long ON_TIMEOUT = 5 * 60 * 1000LU; // Max duration of ON state: 5 minutes
 const unsigned long NO_MOVEMENT_TIMEOUT = 1*60*1000LU; // ON state ends in this time if no movement: 1 minute
 const unsigned long STOPPING_TIMEOUT = 15 * 1000LU; // Duration of STOPPING state: 15 seconds
+
+const unsigned long CALIBRATION_TIME = 30 * 1000LU; // Time to wait in the beginning
 
 int state = STATE_OFF;
 int subState = 0;
@@ -48,6 +49,12 @@ void setup() {
   Serial.println("Initializing SD card and MP3 player...");
   initSD();  // Initialize the SD card
   initMP3Player(); // Initialize the MP3 Shield
+
+  // PIR calibration period
+  for (int i=0; i<CALIBRATION_TIME; i+=1000) {
+    leds((i/1000 % 2) * 255);
+    delay(1000);
+  }
 }
 
 // initSD() initializes the SD card and checks for an error.
@@ -80,9 +87,16 @@ boolean isMovement() {
   int count = 0;
   for (int i=0; i < PIR_SENSOR_COUNT; i++) {
     if (digitalRead(pirPins[i]) == HIGH) {
+      Serial.print(pirPins[i]);
+      Serial.print(", ");
       count++;
     }
   }
+
+  if (count > 0) {
+    Serial.println("");
+  }
+
   return count >= MOVEMENT_THRESHOLD;
 }
 
